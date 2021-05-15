@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"noImplicitAny": true,
+		"removeComments": true,
+		"sourceMap": true,
+		"outDir": "dist/",
+		"allowSyntheticDefaultImports": false,
+		"strict": true,
+		// "downlevelIteration": true,
+		"isolatedModules": true,
+		"target": "ESNext"
+	},
+	"include": [
+		"src/**/*.ts"
+	]
+}
