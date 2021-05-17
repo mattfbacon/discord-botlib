@@ -141,9 +141,9 @@ export class CommandHandler {
 	public readonly args: ArgumentHandler[];
 	public readonly minArgs: number;
 	public readonly metadata: Metadata;
-	protected readonly utopicRun: (context: CommandContext, ...xs: AnyReasonable[]) => any;
+	protected readonly utopicRun: (context: CommandContext, ...xs: any[]) => any;
 
-	public constructor(utopicRun: (context: CommandContext, ...xs: AnyReasonable[]) => any, args: ArgumentHandler[], minArgs: number, metadata: Metadata) {
+	public constructor(utopicRun: (context: CommandContext, ...xs: any[]) => any, args: ArgumentHandler[], minArgs: number, metadata: Metadata) {
 		this.utopicRun = utopicRun;
 		this.args = args;
 		this.minArgs = minArgs;
