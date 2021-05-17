@@ -3,6 +3,7 @@ import type { Schema, } from './ConfigParser';
 import * as Parsers from './Parsers';
 import type { ParseResult, } from './Parsers';
 import type { DBManager, } from './Database';
+import { help, } from './Commands/All';
 
 export const enum ArgKind {
 	REQUIRED,
@@ -41,6 +42,7 @@ export interface CommandContext {
 	commands: Map<string, CommandHandler>;
 	config: Schema;
 	db: DBManager;
+	currentCommand: string;
 }
 
 export interface Metadata {
@@ -190,10 +192,13 @@ export class CommandHandler {
 		return [ true, parsedArgs, ];
 	}
 
-	protected sendFailure({ message: { channel: { send, }, }, config: { giveContextOnError, }, }: CommandContext, reason: ArgumentFailure): void {
+	protected sendFailure(context: CommandContext, reason: ArgumentFailure): void {
 		switch (reason[0]) {
 			case ArgumentFailureReason.EXCESS:
-				send(`You provided ${reason[1]} too many arguments.${giveContextOnError ? " Here's the help page for the command:" : ''}`);
+				context.message.channel.send(`You provided ${reason[1]} too many arguments.${context.config.giveContextOnError ? " Here's the help page for the command:" : ''}`);
+				if (context.config.giveContextOnError) {
+					help(context, context.currentCommand);
+				}
 		}
 	}
 }

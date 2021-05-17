@@ -27,7 +27,7 @@ export class MessageParser {
 			const [ command, ...args ] = trimmedMessage.slice(this.config.prefix.length).trimStart().split(' ');
 			const handler = this.commands.get(command);
 			if (handler) { // run the command
-				handler.run({ message, client, commands: this.commands, config: this.config, db: this.db, }, args);
+				handler.run({ message, client, commands: this.commands, config: this.config, db: this.db, currentCommand: command, }, args);
 			} else { // tell the user the command was invalid
 				this.invalidCommand(message.channel, command);
 			}
@@ -37,7 +37,7 @@ export class MessageParser {
 				message.channel.send(Strings.prefixMessage(this.config.prefix, this.config.mentionAsPrefix));
 			}
 			const handler = this.commands.get(command);
-			if (handler) { handler.run({ message, client, commands: this.commands, config: this.config, db: this.db, }, args); }
+			if (handler) { handler.run({ message, client, commands: this.commands, config: this.config, db: this.db, currentCommand: command, }, args); }
 			// don't say anything if there is no command in order to not be annoying
 			// if people are just talking about me.
 		}
