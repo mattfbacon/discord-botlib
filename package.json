@@ -1,30 +1,30 @@
 {
-  "name": "authy",
-  "version": "1.0.0",
-  "description": "Discord Authorization Bot",
-  "author": "Matt Fellenz",
-  "license": "AGPL-3.0-only",
-  "private": false,
-  "scripts": {
-    "start": "tsc && node dist/Index.js"
-  },
-  "dependencies": {
-    "colors": "^1.4.0",
-    "discord.js": "^12.5.3",
-    "dotenv": "^9.0.2",
-    "joi": "^17.4.0",
-    "mongodb": "^3.6.6",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.4"
-  },
-  "devDependencies": {
-    "@types/mongodb": "^3.6.12",
-    "@types/node": "^15.0.2",
-    "@types/ws": "^7.4.4",
-    "@typescript-eslint/eslint-plugin": "^4.23.0",
-    "@typescript-eslint/parser": "^4.23.0",
-    "eslint": "^7.26.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0"
-  }
+	"name": "authy",
+	"version": "1.0.0",
+	"description": "Discord Authorization Bot",
+	"author": "Matt Fellenz",
+	"license": "AGPL-3.0-only",
+	"private": false,
+	"scripts": {
+		"start": "tsc && node dist/Index.js"
+	},
+	"dependencies": {
+		"colors": "^1.4.0",
+		"discord.js": "^12.5.3",
+		"dotenv": "^9.0.2",
+		"joi": "^17.4.0",
+		"mongodb": "^3.6.6",
+		"ts-node": "^9.1.1",
+		"typescript": "^4.2.4"
+	},
+	"devDependencies": {
+		"@types/mongodb": "^3.6.12",
+		"@types/node": "^15.0.2",
+		"@types/ws": "^7.4.4",
+		"@typescript-eslint/eslint-plugin": "^4.23.0",
+		"@typescript-eslint/parser": "^4.23.0",
+		"eslint": "^7.26.0",
+		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-promise": "^5.1.0"
+	}
 }
