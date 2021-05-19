@@ -2,19 +2,19 @@ import type * as Discord from 'discord.js';
 import type { CommandHandler, } from './Command';
 import * as Util from './Util';
 import * as Strings from './Strings';
-import type { Schema, } from './ConfigParser';
 import type * as DB from './Database';
+import hooks from './Hooks/All';
+import { runHooks, } from './Hook';
+import config from './Config';
 
 export class MessageParser {
-	public readonly config: Schema;
 	public readonly client: Discord.Client;
 	public readonly db: DB.DBManager;
 	public readonly commands: Map<string, CommandHandler>;
 
 	protected readonly myMention: string;
 
-	public constructor(config: Schema, db: DB.DBManager, client: Discord.Client, commands: Map<string, CommandHandler>) {
-		this.config = config;
+	public constructor(db: DB.DBManager, client: Discord.Client, commands: Map<string, CommandHandler>) {
 		this.client = client;
 		this.db = db;
 		this.commands = commands;

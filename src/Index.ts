@@ -10,13 +10,11 @@ import * as MessageParser from './MessageParser';
 import logging from './BasicLogging';
 
 import commands from './Commands/All';
+import hooks from './Hooks/All';
+import { runHooks, } from './Hook';
 
 loadEnv();
-const config: Schema = parseConfig(
-	fs.existsSync('config.json')
-		? JSON.parse(fs.readFileSync('config.json', { encoding: 'utf-8', }))
-		: {}
-);
+import config from './Config';
 
 const conn = new Mongo.MongoClient('mongodb://localhost:27017', { useNewUrlParser: true, useUnifiedTopology: true, });
 const discord = new Discord.Client();
@@ -32,7 +30,7 @@ if (!process.env.DISCORD_TOKEN) {
 	await discord.login(process.env.DISCORD_TOKEN);
 	logging.log('Discord connection established.');
 	logging.info('Starting bot...');
-	main(new MessageParser.MessageParser(config, new DB.DBManager(conn.db(config.dbName)), discord, commands), discord);
+	main(new MessageParser.MessageParser(new DB.DBManager(conn.db(config.dbName)), discord, commands), discord);
 })().catch(e => { throw e; });
 
 function main(messageParser: MessageParser.MessageParser, bot: Discord.Client): void {
