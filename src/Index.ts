@@ -1,10 +1,7 @@
 import * as Mongo from 'mongodb';
 import * as Discord from 'discord.js';
 import { config as loadEnv, } from 'dotenv';
-import * as fs from 'fs';
 
-import type { Schema, } from './ConfigParser';
-import { parse as parseConfig, } from './ConfigParser';
 import * as DB from './Database';
 import * as MessageParser from './MessageParser';
 import logging from './BasicLogging';
