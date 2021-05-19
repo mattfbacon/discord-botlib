@@ -23,27 +23,28 @@ export class MessageParser {
 
 	public run(message: Discord.Message, client: Discord.Client): void {
 		const trimmedMessage = message.content.trim();
-		if (trimmedMessage.startsWith(this.config.prefix)) {
-			const [ command, ...args ] = trimmedMessage.slice(this.config.prefix.length).trimStart().split(' ');
-			const handler = this.commands.get(command);
-			if (handler) { // run the command
-				handler.run({ message, client, commands: this.commands, config: this.config, db: this.db, currentCommand: command, }, args);
-			} else { // tell the user the command was invalid
-				this.invalidCommand(message.channel, command);
-			}
-		} else if (this.config.mentionAsPrefix && trimmedMessage.startsWith(this.myMention)) {
-			const [ command, ...args ] = trimmedMessage.slice(this.myMention.length).trimStart().split(' ');
-			if (command === '') {
-				message.channel.send(Strings.prefixMessage(this.config.prefix, this.config.mentionAsPrefix));
+		const wasMentionAsPrefix = config.mentionAsPrefix && trimmedMessage.startsWith(this.myMention);
+		if (wasMentionAsPrefix || trimmedMessage.startsWith(config.prefix)) {
+			const [ command, ...args ] = trimmedMessage.slice((wasMentionAsPrefix ? this.myMention : config.prefix).length).trimStart().split(' ');
+			if (wasMentionAsPrefix && command === '') {
+				message.channel.send(Strings.prefixMessage);
+				return;
 			}
 			const handler = this.commands.get(command);
-			if (handler) { handler.run({ message, client, commands: this.commands, config: this.config, db: this.db, currentCommand: command, }, args); }
-			// don't say anything if there is no command in order to not be annoying
-			// if people are just talking about me.
+			if (handler) {
+				handler.run({ message, client, commands: this.commands, db: this.db, currentCommand: command, }, args);
+			} else {
+				this.invalidCommand(message, command, wasMentionAsPrefix);
+			}
 		}
 	}
 
-	protected invalidCommand(chan: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel, cmd: string): void {
-		chan.send(Strings.invalidCommand(this.config.prefix, cmd), { allowedMentions: { parse: [], }, disableMentions: 'all', });
+	protected invalidCommand(msg: Discord.Message, cmd: string, mentionAsPrefix: boolean): void {
+		if (runHooks(hooks.onInvalidCommand, msg, cmd, mentionAsPrefix)) return;
+		if (!mentionAsPrefix) {
+			// if using mention-as-prefix, don't say anything if the command does not
+			// exist in order to not be annoying if people are just talking about me.
+			msg.channel.send(Strings.invalidCommand(cmd), { allowedMentions: { parse: [], }, disableMentions: 'all', });
+		}
 	}
 }
