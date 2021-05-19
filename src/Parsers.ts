@@ -4,10 +4,23 @@ import { Util, } from 'discord.js';
 /* Lib */
 
 export const enum ParseFailureReason {
-	BAD_FORMAT, // could not be parsed due to improper format
-	BAD_VALUE, // could be parsed but the value was invalid
-	NO_PARSER_MATCHED, // multiple parsers existed for the value but none of them succeeded
-	NOT_APPLICABLE, // tried to get something that makes no sense in the context (e.g., GuildMember in a DM)
+	/**
+	 * Could not be parsed due to improper format
+	 */
+	BAD_FORMAT,
+	/**
+	 * Could be parsed but the value was invalid
+	 */
+	BAD_VALUE,
+	/**
+	 * Multiple parsers existed for the value but none of them succeeded
+	 */
+	NO_PARSER_MATCHED,
+	/**
+	 * Tried to get something that makes no sense in the context
+	 * (e.g., GuildMember in a DM)
+	 */
+	NOT_APPLICABLE,
 	VALUE_REQUIRED,
 }
 
