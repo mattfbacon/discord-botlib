@@ -5,6 +5,7 @@ import { ArgKind, } from '../Command';
 import { ArgType, CommandHandler, OptionalArgumentHandler, } from '../Command';
 import { getProperty, } from '../Util';
 import * as Strings from '../Strings';
+import config from '../Config';
 
 function commandShortDesc({ metadata: { name, shortDesc, }, args, }: CommandHandler): string {
 	return `${name} ${args.map(getProperty('repr')).join(' ')}: ${shortDesc}`;
@@ -25,7 +26,7 @@ const argToEmbedField = ({ metadata: { name, shortDesc, longDesc, }, type, kind,
 
 const shortLongDesc = (shortDesc: string, longDesc: string): string => `${shortDesc}${longDesc ? `\n${longDesc}` : ''}`;
 
-export function help({ message, commands, config: { prefix, themeColor, }, }: CommandContext, name_?: string): void {
+export function help({ message, commands, }: CommandContext, name_?: string): void {
 	if (name_) {
 		const commandData = commands.get(name_);
 		if (commandData) {
@@ -34,10 +35,10 @@ export function help({ message, commands, config: { prefix, themeColor, }, }: Co
 				title: `Help for \`${name}\``,
 				description: shortLongDesc(shortDesc, longDesc),
 				fields: args.map(argToEmbedField),
-				color: themeColor,
+				color: config.themeColor,
 			}));
 		} else {
-			message.channel.send(Strings.invalidCommand(prefix, name_));
+			message.channel.send(Strings.invalidCommand(config.prefix), { allowedMentions: { parse: [], }, disableMentions: 'all', });
 		}
 	} else {
 		message.channel.send([

@@ -1,9 +1,11 @@
 import type * as Discord from 'discord.js';
-import type { Schema, } from './ConfigParser';
 import * as Parsers from './Parsers';
 import type { ParseResult, } from './Parsers';
+import { ParseFailureReason, } from './Parsers';
 import type { DBManager, } from './Database';
 import { help, } from './Commands/All';
+import { indexToString, } from './Strings';
+import config from './Config';
 
 export const enum ArgKind {
 	REQUIRED,
@@ -40,7 +42,6 @@ export interface CommandContext {
 	client: Discord.Client;
 	// eslint-disable-next-line no-use-before-define
 	commands: Map<string, CommandHandler>;
-	config: Schema;
 	db: DBManager;
 	currentCommand: string;
 }
@@ -53,8 +54,10 @@ export interface Metadata {
 
 type AnyReasonable = string | number | boolean | null | undefined | Array<any> | Record<any, any>;
 
+type ArgumentParseFailure = [ ParseFailureReason, number?, ];
+
 export class ArgumentHandler {
-	public readonly getFrom: (args: string[], context: CommandContext) => [ParseResult<AnyReasonable[]>, string[], ];
+	public readonly getFrom: (args: string[], context: CommandContext) => [ParseResult<AnyReasonable[], ArgumentParseFailure>, string[], ];
 	public readonly metadata: Metadata;
 	public readonly kind: ArgKind;
 	public readonly type: ArgType;
@@ -64,7 +67,7 @@ export class ArgumentHandler {
 	public readonly repr: string;
 
 	public constructor(
-		getFrom: (args: string[], context: CommandContext) => [ ParseResult<AnyReasonable[]>, string[], ],
+		getFrom: (args: string[], context: CommandContext) => [ ParseResult<AnyReasonable[], ArgumentParseFailure>, string[], ],
 		metadata: Metadata,
 		kind: ArgKind,
 		type: ArgType,
@@ -115,7 +118,7 @@ export class RestArgumentHandler extends ArgumentHandler {
 			const parsedArgs: AnyReasonable[] = [];
 			for (const [ i, arg, ] of args.entries()) {
 				const thisParsedArg = argHandler(arg, context.message, context.client);
-				if (!Parsers.didSucceed(thisParsedArg)) return [ thisParsedArg, args.slice(i + 1), ];
+				if (!Parsers.didSucceed(thisParsedArg)) return [ Parsers.fail(thisParsedArg[1], i), args.slice(i + 1), ];
 				parsedArgs.push(thisParsedArg[1]);
 			}
 			return [ Parsers.succeed(parsedArgs), [], ];
@@ -130,14 +133,13 @@ const kindWrapper: Record<ArgKind, (x: string) => string> = {
 };
 
 const enum ArgumentFailureReason {
-	REQUIRED_NOT_PROVIDED,
 	EXCESS,
 	PARSE_BAD,
 }
 
 type ArgumentFailure =
 	[ArgumentFailureReason.EXCESS, number, ] | // number of extra args left after parsing
-	[ArgumentFailureReason.PARSE_BAD, number, Metadata, Parsers.ParseFailureReason, ]; // index, reason
+	[ArgumentFailureReason.PARSE_BAD, number, Metadata, Parsers.ParseFailureReason, ]; // index, arg metadata, reason
 
 export class CommandHandler {
 	public readonly args: ArgumentHandler[];
@@ -184,7 +186,7 @@ export class CommandHandler {
 			const [ theseParsedArgs, newRawArgs, ] = handler.getFrom(rawArgs, context);
 			rawArgs = newRawArgs;
 			if (!Parsers.didSucceed(theseParsedArgs)) {
-				return [ false, [ ArgumentFailureReason.PARSE_BAD, i, handler.metadata, theseParsedArgs[1], ], ];
+				return [ false, [ ArgumentFailureReason.PARSE_BAD, (theseParsedArgs[2] ?? 0) + i, handler.metadata, theseParsedArgs[1], ], ];
 			}
 			parsedArgs.push(...theseParsedArgs[1]);
 		}
@@ -193,12 +195,26 @@ export class CommandHandler {
 	}
 
 	protected sendFailure(context: CommandContext, reason: ArgumentFailure): void {
-		switch (reason[0]) {
-			case ArgumentFailureReason.EXCESS:
-				context.message.channel.send(`You provided ${reason[1]} too many arguments.${context.config.giveContextOnError ? " Here's the help page for the command:" : ''}`);
-				if (context.config.giveContextOnError) {
-					help(context, context.currentCommand);
-				}
+		context.message.channel.send(reason[0] === ArgumentFailureReason.EXCESS
+			? `You provided ${reason[1]} too many arguments.`
+			: failureToString(reason.slice(1) as [ number, Metadata, ParseFailureReason, ])
+		);
+		if (config.giveContextOnError) {
+			help(context, context.currentCommand);
 		}
 	}
 }
+
+const failureToString = ([ idx, { name, }, reason, ]: [ number, Metadata, ParseFailureReason, ]): string => {
+	switch (reason) {
+		case ParseFailureReason.VALUE_REQUIRED:
+			return `Required argument \`${name}\` (${indexToString(idx)}) was not provided.`;
+		case ParseFailureReason.NO_PARSER_MATCHED:
+		case ParseFailureReason.BAD_FORMAT:
+			return `Argument \`${name}\` (${indexToString(idx)}) had an invalid format.`;
+		case ParseFailureReason.BAD_VALUE:
+			return `Argument \`${name}\` (${indexToString(idx)}) had a bad value.`;
+		case ParseFailureReason.NOT_APPLICABLE:
+			return 'This command is not valid in this context.';
+	}
+};
