@@ -25,13 +25,13 @@ export const enum ParseFailureReason {
 }
 
 type SuccessfulParse<T> = [true, T, ];
-type FailedParse = [false, ParseFailureReason, ];
-export type ParseResult<T> = SuccessfulParse<T> | FailedParse;
+type FailedParse<U extends Array<any>> = [false, ...U, ];
+export type ParseResult<T, U extends Array<any>=[ ParseFailureReason, ]> = SuccessfulParse<T> | FailedParse<U>;
 
 export type Parser<T> = (raw: string, _message: Message, _client: Client) => ParseResult<T>;
 export type ParserSimple<T> = (raw: string, _message?: Message, _client?: Client) => ParseResult<T>;
 
-export const fail = (reason: ParseFailureReason): ParseResult<any> => [ false, reason, ];
+export const fail = <U extends Array<any>>(...reason: U): ParseResult<any, U> => [ false, ...reason, ];
 export const succeed = <T>(value: T): ParseResult<T> => [ true, value, ];
 
 export const didSucceed = <T>(x: ParseResult<T>): x is SuccessfulParse<T> => x[0];
