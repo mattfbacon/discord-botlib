@@ -37,8 +37,8 @@ export interface Schema {
 const schema = Joi.object({
 	prefix: Joi.string().min(1).default(';;').regex(/ /, { invert: true, }),
 	mentionAsPrefix: Joi.bool().default(true),
-	dbName: Joi.string().min(1).default('authy'),
-	themeColor: Joi.string().default('#574b90').regex(/#[0-9a-fA-F]{6}/),
+	dbName: Joi.string().min(1).max(64).default('authy').regex(/[0-9a-zA-Z_]+/),
+	themeColor: Joi.string().default('#574b90').regex(/^#[0-9a-fA-F]{6}$/),
 	giveContextOnError: Joi.bool().default(true),
 	zeroIndexed: Joi.bool().default(false),
 });
