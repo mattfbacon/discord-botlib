@@ -30,9 +30,9 @@ export const parserForArgType: Record<string, Parsers.Parser<any>> = Object.crea
 	[ArgType.NUMBER]: Parsers.number,
 	[ArgType.NATURAL]: Parsers.natural,
 	[ArgType.NON_NEGATIVE]: Parsers.nonNegative,
-	[ArgType.USER]: Parsers.realUser,
-	[ArgType.ROLE]: Parsers.realRole,
-	[ArgType.CHANNEL]: Parsers.realChannel,
+	[ArgType.USER]: Parsers.user,
+	[ArgType.ROLE]: Parsers.role,
+	[ArgType.CHANNEL]: Parsers.channel,
 	[ArgType.RAW]: Parsers.raw,
 	[ArgType.BOOLEAN]: Parsers.humanBoolean,
 });
