@@ -22,12 +22,13 @@ if (!process.env.DISCORD_TOKEN) {
 }
 
 (async (): Promise<void> => {
-	await conn.connect();
-	logging.log('DB connection established.');
-	await discord.login(process.env.DISCORD_TOKEN);
-	logging.log('Discord connection established.');
+	const db = new DBManager();
+	await Promise.all([
+		db.connect().then(() => { logging.log('DB connection established.'); }),
+		discord.login(process.env.DISCORD_TOKEN).then(() => { logging.log('Discord connection established.'); }),
+	]);
 	logging.info('Starting bot...');
-	main(new MessageParser.MessageParser(new DB.DBManager(conn.db(config.dbName)), discord, commands), discord);
+	main(new MessageParser.MessageParser(db, discord, commands), discord);
 })().catch(e => { throw e; });
 
 function main(messageParser: MessageParser.MessageParser, bot: Discord.Client): void {
