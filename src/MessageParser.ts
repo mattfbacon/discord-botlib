@@ -12,21 +12,24 @@ export class MessageParser {
 	public readonly db: DB.DBManager;
 	public readonly commands: Map<string, CommandHandler>;
 
-	protected readonly myMention: string;
+	protected readonly myMentions: string[];
 
 	public constructor(db: DB.DBManager, client: Discord.Client, commands: Map<string, CommandHandler>) {
 		this.client = client;
 		this.db = db;
 		this.commands = commands;
-		this.myMention = Util.makeMention((client.user as Discord.ClientUser).id);
+		const id = (client.user as Discord.ClientUser).id;
+		this.myMentions = [ Util.makeMention(id), Util.makeNicknameMention(id), ];
 	}
 
 	public run(message: Discord.Message, client: Discord.Client): void {
 		const trimmedMessage = message.content.trim();
-		const wasMentionAsPrefix = config.mentionAsPrefix && trimmedMessage.startsWith(this.myMention);
-		if (wasMentionAsPrefix || trimmedMessage.startsWith(config.prefix)) {
-			const [ command, ...args ] = trimmedMessage.slice((wasMentionAsPrefix ? this.myMention : config.prefix).length).trimStart().split(' ');
-			if (wasMentionAsPrefix && command === '') {
+		const mentionAsPrefixPrefix: string | undefined = config.mentionAsPrefix
+			? this.myMentions.find(x => trimmedMessage.startsWith(x))
+			: void 0;
+		if (!!mentionAsPrefixPrefix || trimmedMessage.startsWith(config.prefix)) {
+			const [ command, ...args ] = trimmedMessage.slice((mentionAsPrefixPrefix ?? config.prefix).length).trimStart().split(' ');
+			if (!!mentionAsPrefixPrefix && command === '') {
 				message.channel.send(Strings.prefixMessage);
 				return;
 			}
@@ -34,7 +37,7 @@ export class MessageParser {
 			if (handler) {
 				handler.run({ message, client, commands: this.commands, db: this.db, currentCommand: command, }, args);
 			} else {
-				this.invalidCommand(message, command, wasMentionAsPrefix);
+				this.invalidCommand(message, command, !!mentionAsPrefixPrefix);
 			}
 		}
 	}
