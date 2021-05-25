@@ -33,6 +33,17 @@ export interface Schema {
 	 * @default false // one-indexed
 	 */
 	zeroIndexed: boolean;
+	/**
+	 * Whether to tell the user that the command was invalid.
+	 *
+	 * A boolean value (accepted but transformed by Joi) means that value for
+	 * both.
+	 * @default { mention: false, prefix: true, }
+	 */
+	invalidCommandNotice: {
+		mention: boolean;
+		prefix: boolean;
+	};
 }
 
 const schema = Joi.object({
@@ -42,6 +53,13 @@ const schema = Joi.object({
 	themeColor: Joi.string().default('#574b90').regex(/^#[0-9a-fA-F]{6}$/),
 	giveContextOnError: Joi.bool().default(true),
 	zeroIndexed: Joi.bool().default(false),
+	invalidCommandNotice: Joi.alternatives(
+		Joi.bool().custom((value, _helpers) => ({ mention: value, prefix: value, })),
+		Joi.object({
+			mention: Joi.bool().default(false),
+			prefix: Joi.bool().default(true),
+		})
+	).default({ mention: false, prefix: true, }),
 });
 
 const parse = (data: any): Schema => schema.validate(data).value;

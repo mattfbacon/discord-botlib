@@ -41,9 +41,7 @@ export class MessageParser {
 
 	protected invalidCommand(msg: Discord.Message, cmd: string, mentionAsPrefix: boolean): void {
 		if (runHooks(hooks.onInvalidCommand, msg, cmd, mentionAsPrefix)) return;
-		if (!mentionAsPrefix) {
-			// if using mention-as-prefix, don't say anything if the command does not
-			// exist in order to not be annoying if people are just talking about me.
+		if (config.invalidCommandNotice[mentionAsPrefix ? 'mention' : 'prefix']) {
 			msg.channel.send(Strings.invalidCommand(cmd), { allowedMentions: { parse: [], }, disableMentions: 'all', });
 		}
 	}
