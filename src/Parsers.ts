@@ -90,23 +90,22 @@ export const nonNegative: ParserSimple<number> = raw =>
 			: succeed(x)
 	);
 
+const escapeRegex = (str: string): string => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const regexMatchMatcher = (regex: RegExp): ParserSimple<string> =>
+	(raw: string): ParseResult<string> => { // matches something like <@id> (if prefix was @)
+		const matchResult = raw.match(regex);
+		if (matchResult === null) return fail(ParseFailureReason.BAD_FORMAT);
+		const idAsString = matchResult[1];
+		return succeed(idAsString);
+	};
+
 /**
  * Does not verify if the user actually exists. For that use `userReal`.
  */
 const inlineIdMatcher = (includeRawId: boolean, ...prefixes: string[]): ParserSimple<Snowflake> => {
-	const matchers = prefixes.map(prefix =>
-		(raw: string): ParseResult<Snowflake> => { // matches something like <@id> (if prefix was @)
-			const matchResult = raw.match(`^<${prefix}(\\d+)>$`);
-			if (matchResult === null) return fail(ParseFailureReason.BAD_FORMAT);
-			const idAsString = matchResult[0];
-			return map(natural(idAsString), x => x.toString(10)); // make sure it's a number
-		}
-	);
-	if (includeRawId) {
-		matchers.push((raw: string): ParseResult<Snowflake> => { // matches: id
-			return map(natural(raw), x => x.toString(10));
-		});
-	}
+	const matchers = prefixes.map(prefix => regexMatchMatcher(new RegExp(`^<${escapeRegex(prefix)}(\\d+)>$`)));
+	if (includeRawId) { matchers.push(regexMatchMatcher(/^(\d+)$/)); }
 	return oneOfSimple(...matchers);
 };
 
