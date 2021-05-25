@@ -1,8 +1,7 @@
-import * as Mongo from 'mongodb';
 import * as Discord from 'discord.js';
 import { config as loadEnv, } from 'dotenv';
 
-import * as DB from './Database';
+import DBManager from './Database';
 import * as MessageParser from './MessageParser';
 import logging from './BasicLogging';
 
@@ -11,9 +10,7 @@ import hooks from './Hooks/All';
 import { runHooks, } from './Hook';
 
 loadEnv();
-import config from './Config';
 
-const conn = new Mongo.MongoClient('mongodb://localhost:27017', { useNewUrlParser: true, useUnifiedTopology: true, });
 const discord = new Discord.Client();
 
 if (!process.env.DISCORD_TOKEN) {
