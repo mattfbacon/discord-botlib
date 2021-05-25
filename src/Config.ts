@@ -30,6 +30,7 @@ export interface Schema {
 	/**
 	 * Indexes can be one-indexed or zero-indexed depending on your target
 	 * audience.
+	 * @default false // one-indexed
 	 */
 	zeroIndexed: boolean;
 }
