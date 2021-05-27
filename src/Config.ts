@@ -1,8 +1,7 @@
-import * as Joi from 'joi';
-
 export interface Schema {
 	/**
 	 * The prefix to respond to in chat
+	 * No spaces, and might be good to avoid hard-to-type unicode
 	 * @default ';;'
 	 */
 	prefix: string;
@@ -24,7 +23,7 @@ export interface Schema {
 	themeColor: string;
 	/**
 	 * Whether to send the help page for the command when it's misused
-	 * @defoult true
+	 * @default true
 	 */
 	giveContextOnError: boolean;
 	/**
@@ -35,9 +34,6 @@ export interface Schema {
 	zeroIndexed: boolean;
 	/**
 	 * Whether to tell the user that the command was invalid.
-	 *
-	 * A boolean value (accepted but transformed by Joi) means that value for
-	 * both.
 	 * @default { mention: false, prefix: true, }
 	 */
 	invalidCommandNotice: {
@@ -46,23 +42,17 @@ export interface Schema {
 	};
 }
 
-const schema = Joi.object({
-	prefix: Joi.string().min(1).default(';;').regex(/ /, { invert: true, }),
-	mentionAsPrefix: Joi.bool().default(true),
-	dbName: Joi.string().min(1).max(64).default('authy').regex(/[0-9a-zA-Z_]+/),
-	themeColor: Joi.string().default('#574b90').regex(/^#[0-9a-fA-F]{6}$/),
-	giveContextOnError: Joi.bool().default(true),
-	zeroIndexed: Joi.bool().default(false),
-	invalidCommandNotice: Joi.alternatives(
-		Joi.bool().custom((value, _helpers) => ({ mention: value, prefix: value, })),
-		Joi.object({
-			mention: Joi.bool().default(false),
-			prefix: Joi.bool().default(true),
-		})
-	).default({ mention: false, prefix: true, }),
-});
+const config: Schema = {
+	prefix: ";;",
+	mentionAsPrefix: true,
+	dbName: "authy",
+	themeColor: "#574b90",
+	giveContextOnError: true,
+	zeroIndexed: false,
+	invalidCommandNotice: {
+		mention: false,
+		prefix: true,
+	},
+};
 
-const parse = (data: any): Schema => schema.validate(data).value;
-
-import config from './YourConfig';
-export default parse(config);
+export default config;
