@@ -9,12 +9,12 @@ import config from './Config';
 
 export class MessageParser {
 	public readonly client: Discord.Client;
-	public readonly db: DB.DBManager;
+	public readonly db: DB.IDBManager;
 	public readonly commands: Map<string, CommandHandler>;
 
 	protected readonly myMentions: string[];
 
-	public constructor(db: DB.DBManager, client: Discord.Client, commands: Map<string, CommandHandler>) {
+	public constructor(db: DB.IDBManager, client: Discord.Client, commands: Map<string, CommandHandler>) {
 		this.client = client;
 		this.db = db;
 		this.commands = commands;

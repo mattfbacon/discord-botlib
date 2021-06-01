@@ -1,41 +1,20 @@
 import * as MariaDB from 'mariadb';
-import * as Mongo from 'mongodb';
 import * as Sequelize from 'sequelize';
 import logging from './BasicLogging';
 
 import config from './Config';
 
-export type MongoDoc<T> = T & { _id: Mongo.ObjectId };
 
-export abstract class DBManager {
-	public abstract readonly isConnected: boolean;
-	public abstract connect(): Promise<void>;
+export interface IDBManager {
+	readonly isConnected: boolean;
+	connect: () => Promise<void>;
 }
 
-class MongoDBManager extends DBManager {
-	protected conn: Mongo.MongoClient;
-	protected db: Mongo.Db = null as unknown as Mongo.Db; // will be reassigned
-	public constructor() {
-		super();
-		this.conn = new Mongo.MongoClient('mongodb://localhost:27017', { useNewUrlParser: true, useUnifiedTopology: true, });
-	}
-
-	public async connect(): Promise<void> {
-		await this.conn.connect();
-		this.db = this.conn.db(config.dbName);
-	}
-
-	public get isConnected(): boolean {
-		return this.conn.isConnected();
-	}
-}
-
-class SQLDBManager extends DBManager {
+class DBManager implements IDBManager {
 	protected readonly conn: Sequelize.Sequelize;
 	protected _isConnected = false;
 
 	public constructor() {
-		super();
 		if (!('DB_USERNAME' in process.env)) {
 			throw new TypeError('DB_USERNAME required but not provided');
 		}
@@ -78,5 +57,4 @@ class SQLDBManager extends DBManager {
 	}
 }
 
-// select your preferred database here
-export default SQLDBManager;
+export default DBManager;
