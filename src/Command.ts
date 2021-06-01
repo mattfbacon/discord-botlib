@@ -49,7 +49,7 @@ export interface CommandContext {
 export interface Metadata {
 	name: string;
 	shortDesc: string;
-	longDesc: string;
+	longDesc?: string;
 }
 
 type AnyReasonable = string | number | boolean | null | undefined | Array<any> | Record<any, any>;

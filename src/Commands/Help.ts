@@ -24,7 +24,7 @@ const argToEmbedField = ({ metadata: { name, shortDesc, longDesc, }, type, kind,
 	value: shortLongDesc(shortDesc, longDesc),
 });
 
-const shortLongDesc = (shortDesc: string, longDesc: string): string => `${shortDesc}${longDesc ? `\n${longDesc}` : ''}`;
+const shortLongDesc = (shortDesc: string, longDesc?: string): string => `${shortDesc}${longDesc ? `\n${longDesc}` : ''}`;
 
 export function help({ message, commands, }: CommandContext, name_?: string): void {
 	if (name_) {
