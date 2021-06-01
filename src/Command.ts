@@ -2,7 +2,7 @@ import type * as Discord from 'discord.js';
 import * as Parsers from './Parsers';
 import type { ParseResult, } from './Parsers';
 import { ParseFailureReason, } from './Parsers';
-import type { DBManager, } from './Database';
+import type { IDBManager, } from './Database';
 import { help, } from './Commands/All';
 import { indexToString, } from './Strings';
 import config from './Config';
@@ -42,7 +42,7 @@ export interface CommandContext {
 	client: Discord.Client;
 	// eslint-disable-next-line no-use-before-define
 	commands: Map<string, CommandHandler>;
-	db: DBManager;
+	db: IDBManager;
 	currentCommand: string;
 }
 
