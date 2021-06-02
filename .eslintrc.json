@@ -224,7 +224,7 @@
 			"objects": "always",
 			"imports": "always",
 			"exports": "always",
-			"functions": "never",
+			"functions": "always-multiline",
 			"enums": "always",
 			"generics": "never",
 			"tuples": "always"

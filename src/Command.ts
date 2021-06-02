@@ -71,7 +71,7 @@ export class ArgumentHandler {
 		metadata: Metadata,
 		kind: ArgKind,
 		type: ArgType,
-		argsTaken: number
+		argsTaken: number,
 	) {
 		this.getFrom = getFrom;
 		this.metadata = metadata;
@@ -160,13 +160,13 @@ export class CommandHandler {
 			Array.prototype.concat.call( // args = staticArgs ++ optionalArgs ++ (restArg if exists)
 				staticArgs,
 				optionalArgs,
-				restArg === null ? [] : [ restArg, ] // don't add the restArg if there isn't one
+				restArg === null ? [] : [ restArg, ], // don't add the restArg if there isn't one
 			),
 			staticArgs.reduce( // minArgs = combined of all static args
 				(acc, x) => acc + x.argsTaken,
-				0
+				0,
 			),
-			metadata
+			metadata,
 		);
 	}
 
@@ -197,7 +197,7 @@ export class CommandHandler {
 	protected sendFailure(context: CommandContext, reason: ArgumentFailure): void {
 		context.message.channel.send(reason[0] === ArgumentFailureReason.EXCESS
 			? `You provided ${reason[1]} too many arguments.`
-			: failureToString(reason.slice(1) as [ number, Metadata, ParseFailureReason, ])
+			: failureToString(reason.slice(1) as [ number, Metadata, ParseFailureReason, ]),
 		);
 		if (config.giveContextOnError) {
 			help(context, context.currentCommand);

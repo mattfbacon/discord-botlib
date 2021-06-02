@@ -80,14 +80,14 @@ export const natural: ParserSimple<number> = raw =>
 		number(raw),
 		x => x < 0
 			? fail(ParseFailureReason.BAD_VALUE)
-			: succeed(x)
+			: succeed(x),
 	);
 export const nonNegative: ParserSimple<number> = raw =>
 	andThen(
 		number(raw),
 		x => x <= 0
 			? fail(ParseFailureReason.BAD_VALUE)
-			: succeed(x)
+			: succeed(x),
 	);
 
 const escapeRegex = (str: string): string => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

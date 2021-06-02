@@ -11,7 +11,7 @@ const timestamp = (): string => new Date().toLocaleString(
 		minute: '2-digit',
 		second: '2-digit',
 		timeZoneName: 'short',
-	}
+	},
 );
 
 const enum LogLevel {

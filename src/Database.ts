@@ -30,7 +30,7 @@ class DBManager implements IDBManager {
 				dialectOptions: { connectTimeout: 1000, }, // 1 second
 				database: config.dbName,
 				logging: logging.log,
-			}
+			},
 		);
 	}
 

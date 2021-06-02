@@ -64,5 +64,5 @@ export default CommandHandler.makeFromHandlerAndArgs(
 			longDesc: "If provided, give information about the command. If not, give a list of commands.",
 		}),
 	],
-	null // rest arg
+	null, // rest arg
 );
