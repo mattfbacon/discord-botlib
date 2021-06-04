@@ -165,9 +165,9 @@ export const realRole = async (raw: string, message: Message): Promise<ParseResu
 		return roleId;
 	} else {
 		try {
+			if (message.guild === null) return fail(ParseFailureReason.NOT_APPLICABLE);
 			// I am hoping that defining it as a variable allows the catch clause to
 			// trigger if the role isn't real...
-			if (message.guild === null) return fail(ParseFailureReason.NOT_APPLICABLE);
 			const role = await message.guild.roles.fetch(roleId[1]);
 			if (role === null) return fail(ParseFailureReason.BAD_VALUE);
 			return succeed(role);
