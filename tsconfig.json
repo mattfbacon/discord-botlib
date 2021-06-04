@@ -9,7 +9,8 @@
 		"strict": true,
 		// "downlevelIteration": true,
 		"isolatedModules": true,
-		"target": "ESNext"
+		"target": "ESNext",
+		"lib": [ "ES6", "ESNext", ],
 	},
 	"include": [
 		"src/**/*.ts"
