@@ -48,7 +48,7 @@ class DBManager implements IDBManager {
 				throw e;
 			}
 		}
-		await this.conn.sync({ alter: true, });
+		await this.conn.sync();
 		this._isConnected = true;
 	}
 
