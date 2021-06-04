@@ -40,6 +40,12 @@ export interface Schema {
 		mention: boolean;
 		prefix: boolean;
 	};
+	/**
+	 * Formatting of dates in Discord.
+	 * @see https://day.js.org/docs/en/display/format
+	 * @default 'DD-MM-YYYYZ'
+	 */
+	dateFormat: string;
 }
 
 const config: Schema = {
@@ -53,6 +59,7 @@ const config: Schema = {
 		mention: false,
 		prefix: true,
 	},
+	dateFormat: 'DD-MM-YYYYZ',
 };
 
 export default config;
