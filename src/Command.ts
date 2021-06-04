@@ -1,6 +1,6 @@
 import type * as Discord from 'discord.js';
 import * as Parsers from './Parsers';
-import type { ParseResult, } from './Parsers';
+import type { ArgType, ParseResult, } from './Parsers';
 import { ParseFailureReason, } from './Parsers';
 import type { IDBManager, } from './Database';
 import { help, } from './Commands/All';
@@ -12,30 +12,6 @@ export const enum ArgKind {
 	OPTIONAL,
 	REST,
 }
-
-export const enum ArgType {
-	STRING = 'text',
-	NUMBER = 'number',
-	NATURAL = 'natural',
-	NON_NEGATIVE = 'non-negative',
-	USER = 'user',
-	ROLE = 'role',
-	CHANNEL = 'channel',
-	RAW = 'text!',
-	BOOLEAN = 'bool',
-}
-
-export const parserForArgType: Record<string, Parsers.Parser<any>> = Object.create({
-	[ArgType.STRING]: Parsers.string,
-	[ArgType.NUMBER]: Parsers.number,
-	[ArgType.NATURAL]: Parsers.natural,
-	[ArgType.NON_NEGATIVE]: Parsers.nonNegative,
-	[ArgType.USER]: Parsers.user,
-	[ArgType.ROLE]: Parsers.role,
-	[ArgType.CHANNEL]: Parsers.channel,
-	[ArgType.RAW]: Parsers.raw,
-	[ArgType.BOOLEAN]: Parsers.humanBoolean,
-});
 
 export interface CommandContext {
 	message: Discord.Message;
@@ -84,8 +60,7 @@ export class ArgumentHandler {
 }
 
 export class StaticArgumentHandler extends ArgumentHandler {
-	public constructor(type: ArgType, metadata: Metadata) {
-		const argHandler = parserForArgType[type];
+	public constructor(argHandler: ArgType, metadata: Metadata) {
 		super((args, context) => {
 			if (args.length < 1) return [ Parsers.fail(Parsers.ParseFailureReason.VALUE_REQUIRED), args.slice(1), ];
 			const parseResult = argHandler(args[0], context.message, context.client);
@@ -93,13 +68,12 @@ export class StaticArgumentHandler extends ArgumentHandler {
 				return [ parseResult, args.slice(1), ];
 			}
 			return [ Parsers.succeed([ parseResult[1], ]), args.slice(1), ];
-		}, metadata, ArgKind.REQUIRED, type, 1);
+		}, metadata, ArgKind.REQUIRED, argHandler, 1);
 	}
 }
 
 export class OptionalArgumentHandler extends ArgumentHandler {
-	public constructor(type: ArgType, metadata: Metadata) {
-		const argHandler = parserForArgType[type];
+	public constructor(argHandler: ArgType, metadata: Metadata) {
 		super((args, context) => {
 			if (args.length < 1) return [ Parsers.succeed([ void 0, ]), args.slice(1), ];
 			const parseResult = argHandler(args[0], context.message, context.client);
@@ -107,13 +81,12 @@ export class OptionalArgumentHandler extends ArgumentHandler {
 				return [ parseResult, args.slice(1), ];
 			}
 			return [ Parsers.succeed([ parseResult[1], ]), args.slice(1), ];
-		}, metadata, ArgKind.OPTIONAL, type, 1);
+		}, metadata, ArgKind.OPTIONAL, argHandler, 1);
 	}
 }
 
 export class RestArgumentHandler extends ArgumentHandler {
-	public constructor(type: ArgType, metadata: Metadata) {
-		const argHandler = parserForArgType[type];
+	public constructor(argHandler: ArgType, metadata: Metadata) {
 		super((args, context) => {
 			const parsedArgs: AnyReasonable[] = [];
 			for (const [ i, arg, ] of args.entries()) {
@@ -122,7 +95,7 @@ export class RestArgumentHandler extends ArgumentHandler {
 				parsedArgs.push(thisParsedArg[1]);
 			}
 			return [ Parsers.succeed(parsedArgs), [], ];
-		}, metadata, ArgKind.REST, type, -1);
+		}, metadata, ArgKind.REST, argHandler, -1);
 	}
 }
 

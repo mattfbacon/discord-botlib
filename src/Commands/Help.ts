@@ -2,10 +2,12 @@ import type { EmbedFieldData, } from 'discord.js';
 import { MessageEmbed, } from 'discord.js';
 import type { ArgumentHandler, CommandContext, } from '../Command';
 import { ArgKind, } from '../Command';
-import { ArgType, CommandHandler, OptionalArgumentHandler, } from '../Command';
+import { CommandHandler, OptionalArgumentHandler, } from '../Command';
 import { getProperty, } from '../Util';
 import * as Strings from '../Strings';
 import config from '../Config';
+import * as Parsers from '../Parsers';
+import type { ArgType, } from '../Parsers';
 
 function commandShortDesc({ metadata: { name, shortDesc, }, args, }: CommandHandler): string {
 	return `${name} ${args.map(getProperty('repr')).join(' ')}: ${shortDesc}`;
@@ -17,7 +19,7 @@ const typeKindKindWrapper: Record<ArgKind, (x: string) => string> = Object.creat
 	[ArgKind.REST]: (x: string) => `...${x}`,
 });
 
-const typeKindRepr = (type: ArgType, kind: ArgKind): string => typeKindKindWrapper[kind](type);
+const typeKindRepr = (type: ArgType, kind: ArgKind): string => typeKindKindWrapper[kind](type.type ?? type.name);
 
 const argToEmbedField = ({ metadata: { name, shortDesc, longDesc, }, type, kind, }: ArgumentHandler): EmbedFieldData => ({
 	name: `${name}: ${typeKindRepr(type, kind)}`,
@@ -58,7 +60,7 @@ export default CommandHandler.makeFromHandlerAndArgs(
 	},
 	[], // static args
 	[ // optional args
-		new OptionalArgumentHandler(ArgType.STRING, {
+		new OptionalArgumentHandler(Parsers.string, {
 			name: "command",
 			shortDesc: "The command to get help for",
 			longDesc: "If provided, give information about the command. If not, give a list of commands.",

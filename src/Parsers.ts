@@ -31,6 +31,11 @@ export type ParseResult<T, U extends Array<any>=[ ParseFailureReason, ]> = Succe
 export type Parser<T> = (raw: string, _message: Message, _client: Client) => ParseResult<T>;
 export type ParserSimple<T> = (raw: string, _message?: Message, _client?: Client) => ParseResult<T>;
 
+/**
+ * if `type` is not defined, then use the `Function#name`.
+ */
+export type ArgType<T = any, IsSimple = false> = (IsSimple extends true ? ParserSimple<T> : Parser<T>) & { type?: string };
+
 export const fail = <U extends Array<any>>(...reason: U): ParseResult<any, U> => [ false, ...reason, ];
 export const succeed = <T>(value: T): ParseResult<T> => [ true, value, ];
 
@@ -68,27 +73,29 @@ const oneOfSimple = <T>(...parsers: ParserSimple<T>[]): ParserSimple<T> => {
 
 /* Implementations */
 
-export const string: Parser<string> = (raw, _message) => succeed(Util.cleanContent(raw, _message));
-export const number: ParserSimple<number> = raw => {
+export const string: ArgType<string, false> = (raw, _message) => succeed(Util.cleanContent(raw, _message));
+string.type = "text";
+export const number: ArgType<number, true> = raw => {
 	const parsed = parseInt(raw, 10);
 	return isNaN(parsed)
 		? fail(ParseFailureReason.BAD_FORMAT)
 		: succeed(parsed);
 };
-export const natural: ParserSimple<number> = raw =>
+export const natural: ArgType<number, true> = raw =>
 	andThen(
 		number(raw),
 		x => x < 0
 			? fail(ParseFailureReason.BAD_VALUE)
 			: succeed(x),
 	);
-export const nonNegative: ParserSimple<number> = raw =>
+export const nonNegative: ArgType<number, true> = raw =>
 	andThen(
 		number(raw),
 		x => x <= 0
 			? fail(ParseFailureReason.BAD_VALUE)
 			: succeed(x),
 	);
+nonNegative.type = "non-negative";
 
 const escapeRegex = (str: string): string => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
