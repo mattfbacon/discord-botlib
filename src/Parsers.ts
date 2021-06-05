@@ -1,5 +1,5 @@
 import type { Channel, Client, GuildMember, Message, Role, Snowflake, User, } from 'discord.js';
-import { Util, } from 'discord.js';
+import { Util, DiscordAPIError, } from 'discord.js';
 
 /* Lib */
 
@@ -24,28 +24,18 @@ export const enum ParseFailureReason {
 	VALUE_REQUIRED,
 }
 
-type SuccessfulParse<T> = [true, T, ];
-type FailedParse<U extends Array<any>> = [false, ...U, ];
-export type ParseResult<T, U extends Array<any>=[ ParseFailureReason, ]> = SuccessfulParse<T> | FailedParse<U>;
+type SuccessfulParse<T> = T;
+type FailedParse<U extends Array<any>> = U;
+// can't type the rejection of a Promise so we'll do it the JS way...
+type ParseResult<T> = Promise<SuccessfulParse<T>>;
 
-export type Parser<T> = (raw: string, _message: Message, _client: Client) => ParseResult<T>;
-export type ParserSimple<T> = (raw: string, _message?: Message, _client?: Client) => ParseResult<T>;
+type PossiblyPartial<T, IsPartial extends boolean> = IsPartial extends true ? T | undefined : T;
 
+type _Parser<T, IsSimple extends boolean> = (raw: string, _message: PossiblyPartial<Message, IsSimple>, _client: PossiblyPartial<Client, IsSimple>) => ParseResult<T>;
 /**
  * if `type` is not defined, then use the `Function#name`.
  */
-export type ArgType<T = any, IsSimple = false> = (IsSimple extends true ? ParserSimple<T> : Parser<T>) & { type?: string };
-
-export const fail = <U extends Array<any>>(...reason: U): ParseResult<any, U> => [ false, ...reason, ];
-export const succeed = <T>(value: T): ParseResult<T> => [ true, value, ];
-
-export const didSucceed = <T>(x: ParseResult<T>): x is SuccessfulParse<T> => x[0];
-
-const map = <T, U>(x: ParseResult<T>, fn: (t: T) => U): ParseResult<U> => didSucceed(x) ? succeed(fn(x[1])) : x; // functor map
-const andThen = <T, U>(x: ParseResult<T>, fn: (t: T) => ParseResult<U>): ParseResult<U> => didSucceed(x) ? fn(x[1]) : x; // monadic bind
-
-// const chain = <T, U>(raw: string, _message: Message, _client: Client, parser1: Parser<T>, parser2: (t: T) => ParseResult<U>): ParseResult<U> =>
-// 	andThen(parser1(raw, _message, _client), parser2);
+export type Parser<T, IsSimple extends boolean> = _Parser<T, IsSimple> & { type?: string };
 
 // const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
 // 	return function (x, _message, _client): ParseResult<T> {
@@ -59,139 +49,128 @@ const andThen = <T, U>(x: ParseResult<T>, fn: (t: T) => ParseResult<U>): ParseRe
 // 	};
 // };
 
-const oneOfSimple = <T>(...parsers: ParserSimple<T>[]): ParserSimple<T> => {
-	return function (x: string): ParseResult<T> {
-		for (const parser of parsers) {
-			const thisResult = parser(x);
-			if (didSucceed(thisResult)) {
-				return thisResult;
-			}
-		}
-		return fail(ParseFailureReason.NO_PARSER_MATCHED);
-	};
-};
+const oneOf = <T, IsSimple extends boolean>(...parsers: Parser<T, IsSimple>[]): Parser<T, IsSimple> =>
+	(raw, _message, _client): ParseResult<T> =>
+		Promise.any(parsers.map(parser => parser(raw, _message, _client)));
 
 /* Implementations */
 
-export const string: ArgType<string, false> = (raw, _message) => succeed(Util.cleanContent(raw, _message));
+export const string: Parser<string, false> = async (raw, _message) => { return Util.cleanContent(raw, _message); };
 string.type = "text";
-export const number: ArgType<number, true> = raw => {
+export const number: Parser<number, true> = async raw => {
 	const parsed = parseInt(raw, 10);
-	return isNaN(parsed)
-		? fail(ParseFailureReason.BAD_FORMAT)
-		: succeed(parsed);
+	if (isNaN(parsed)) { throw ParseFailureReason.BAD_FORMAT; }
+	return parsed;
 };
-export const natural: ArgType<number, true> = raw =>
-	andThen(
-		number(raw),
-		x => x < 0
-			? fail(ParseFailureReason.BAD_VALUE)
-			: succeed(x),
-	);
-export const nonNegative: ArgType<number, true> = raw =>
-	andThen(
-		number(raw),
-		x => x <= 0
-			? fail(ParseFailureReason.BAD_VALUE)
-			: succeed(x),
-	);
+
+export const withCondition = <T, IsSimple extends boolean = false>(parser: Parser<T, IsSimple>, pred: (x: T) => boolean): Parser<T, IsSimple> =>
+	async (raw, _message, _client): ParseResult<T> => {
+		const x = await parser(raw, _message, _client);
+		if (pred(x)) {
+			return x;
+		} else {
+			throw ParseFailureReason.BAD_VALUE;
+		}
+	};
+export const natural = withCondition(number, x => x >= 0);
+export const nonNegative = withCondition(number, x => x > 0);
 nonNegative.type = "non-negative";
 
 const escapeRegex = (str: string): string => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const regexMatchMatcher = (regex: RegExp): ParserSimple<string> =>
-	(raw: string): ParseResult<string> => { // matches something like <@id> (if prefix was @)
+const regexMatchMatcher = (regex: RegExp): Parser<string, true> =>
+	async (raw: string): ParseResult<string> => { // matches something like <@id> (if prefix was @)
 		const matchResult = raw.match(regex);
-		if (matchResult === null) return fail(ParseFailureReason.BAD_FORMAT);
+		if (matchResult === null) { throw ParseFailureReason.BAD_FORMAT; }
 		const idAsString = matchResult[1];
-		return succeed(idAsString);
+		return idAsString;
 	};
 
 /**
  * Does not verify if the user actually exists. For that use `userReal`.
  */
-const inlineIdMatcher = (includeRawId: boolean, ...prefixes: string[]): ParserSimple<Snowflake> => {
+const inlineIdMatcher = (includeRawId: boolean, ...prefixes: string[]): Parser<Snowflake, true> => {
 	const matchers = prefixes.map(prefix => regexMatchMatcher(new RegExp(`^<${escapeRegex(prefix)}(\\d+)>$`)));
 	if (includeRawId) { matchers.push(regexMatchMatcher(/^(\d+)$/)); }
-	return oneOfSimple(...matchers);
+	return oneOf(...matchers);
 };
 
 export const user = inlineIdMatcher(true, '@', '@!');
 export const channel = inlineIdMatcher(true, '#');
 export const role = inlineIdMatcher(true, '@&');
 
-export const realUser = async (raw: string, message: Message, client: Client): Promise<ParseResult<User>> => {
-	const userId = user(raw);
-	if (!didSucceed(userId)) {
-		return userId;
-	} else {
-		try {
-			// I am hoping that defining it as a variable allows the catch clause to
-			// trigger if the user isn't real...
-			const user = await client.users.fetch(userId[1]);
-			return succeed(user);
-		} catch (e) {
-			return fail(ParseFailureReason.BAD_VALUE);
+export const realUser: Parser<User, false> = async (raw: string, message: Message, client: Client) => {
+	const userId = await user(raw, message, client);
+	try {
+		// I am hoping that defining it as a variable allows the catch clause to
+		// trigger if the user isn't real...
+		const user = await client.users.fetch(userId[1]);
+		return user;
+	} catch (e) {
+		if (e instanceof DiscordAPIError) {
+			throw ParseFailureReason.BAD_VALUE;
+		} else {
+			throw e;
 		}
 	}
 };
-export const realGuildUser = async (raw: string, message: Message): Promise<ParseResult<GuildMember>> => {
-	const userId = user(raw);
-	if (!didSucceed(userId)) {
-		return userId;
-	} else {
-		try {
-			if (message.guild === null) return fail(ParseFailureReason.NOT_APPLICABLE);
-			// I am hoping that defining it as a variable allows the catch clause to
-			// trigger if the user isn't real...
-			const user = await message.guild.members.fetch(userId[1]);
-			return succeed(user);
-		} catch (e) {
-			return fail(ParseFailureReason.BAD_VALUE);
+export const realGuildUser: Parser<GuildMember, false> = async (raw: string, message: Message) => {
+	const userId = await user(raw, message, void 0);
+	try {
+		if (message.guild === null) { throw ParseFailureReason.NOT_APPLICABLE; }
+		// I am hoping that defining it as a variable allows the catch clause to
+		// trigger if the user isn't real...
+		const user = await message.guild.members.fetch(userId[1]);
+		return user;
+	} catch (e) {
+		if (e instanceof DiscordAPIError) {
+			throw ParseFailureReason.BAD_VALUE;
+		} else {
+			throw e;
 		}
 	}
 };
-export const realChannel = async (raw: string, _message: Message, client: Client): Promise<ParseResult<Channel>> => {
-	const channelId = channel(raw);
-	if (!didSucceed(channelId)) {
-		return channelId;
-	} else {
-		try {
-			// I am hoping that defining it as a variable allows the catch clause to
-			// trigger if the channel isn't real...
-			const channel = await client.channels.fetch(channelId[1]);
-			return succeed(channel);
-		} catch (e) {
-			return fail(ParseFailureReason.BAD_VALUE);
+export const realChannel: Parser<Channel, false> = async (raw: string, message: Message, client: Client) => {
+	const channelId = await channel(raw, message, client);
+	try {
+		// I am hoping that defining it as a variable allows the catch clause to
+		// trigger if the channel isn't real...
+		const channel = await client.channels.fetch(channelId[1]);
+		return channel;
+	} catch (e) {
+		if (e instanceof DiscordAPIError) {
+			throw ParseFailureReason.BAD_VALUE;
+		} else {
+			throw e;
 		}
 	}
 };
-export const realRole = async (raw: string, message: Message): Promise<ParseResult<Role>> => {
-	const roleId = channel(raw);
-	if (!didSucceed(roleId)) {
-		return roleId;
-	} else {
-		try {
-			if (message.guild === null) return fail(ParseFailureReason.NOT_APPLICABLE);
-			// I am hoping that defining it as a variable allows the catch clause to
-			// trigger if the role isn't real...
-			const role = await message.guild.roles.fetch(roleId[1]);
-			if (role === null) return fail(ParseFailureReason.BAD_VALUE);
-			return succeed(role);
-		} catch (e) {
-			return fail(ParseFailureReason.BAD_VALUE);
+export const realRole: Parser<Role, false> = async (raw: string, message: Message) => {
+	const roleId = await role(raw, message, void 0);
+	try {
+		if (message.guild === null) { throw ParseFailureReason.NOT_APPLICABLE; }
+		// I am hoping that defining it as a variable allows the catch clause to
+		// trigger if the role isn't real...
+		const role = await message.guild.roles.fetch(roleId[1]);
+		if (role === null) { throw ParseFailureReason.BAD_VALUE; }
+		return role;
+	} catch (e) {
+		if (e instanceof DiscordAPIError) {
+			throw ParseFailureReason.BAD_VALUE;
+		} else {
+			throw e;
 		}
 	}
 };
 
-export const raw: ParserSimple<string> = succeed;
+export const raw: Parser<string, true> = async x => x;
 
 const positiveWords = new Set([ 'y', 'yes', 'true', 'on', 'enabled', ]);
 const negativeWords = new Set([ 'n', 'no', 'false', 'off', 'disabled', ]);
 
-export const humanBoolean: ParserSimple<boolean> = raw => {
+export const humanBoolean: Parser<boolean, true> = async raw => {
 	const normalized = raw.normalize('NFKC').toLocaleLowerCase();
-	if (positiveWords.has(normalized)) return succeed(true);
-	if (negativeWords.has(normalized)) return succeed(false);
-	return fail(ParseFailureReason.BAD_FORMAT);
+	if (positiveWords.has(normalized)) return true;
+	if (negativeWords.has(normalized)) return false;
+	throw ParseFailureReason.BAD_FORMAT;
 };

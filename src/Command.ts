@@ -1,11 +1,13 @@
 import type * as Discord from 'discord.js';
 import * as Parsers from './Parsers';
-import type { ArgType, ParseResult, } from './Parsers';
+import type { Parser, } from './Parsers';
 import { ParseFailureReason, } from './Parsers';
 import type { IDBManager, } from './Database';
 import { help, } from './Commands/All';
 import { indexToString, } from './Strings';
 import config from './Config';
+
+export type ArgType = Parser<any, false>;
 
 export const enum ArgKind {
 	REQUIRED,
@@ -33,7 +35,7 @@ type AnyReasonable = string | number | boolean | null | undefined | Array<any> |
 type ArgumentParseFailure = [ ParseFailureReason, number?, ];
 
 export class ArgumentHandler {
-	public readonly getFrom: (args: string[], context: CommandContext) => [ParseResult<AnyReasonable[], ArgumentParseFailure>, string[], ];
+	public readonly getFrom: (args: string[], context: CommandContext) => Promise<[ AnyReasonable[], string[], ]>;
 	public readonly metadata: Metadata;
 	public readonly kind: ArgKind;
 	public readonly type: ArgType;
@@ -43,7 +45,7 @@ export class ArgumentHandler {
 	public readonly repr: string;
 
 	public constructor(
-		getFrom: (args: string[], context: CommandContext) => [ ParseResult<AnyReasonable[], ArgumentParseFailure>, string[], ],
+		getFrom: (args: string[], context: CommandContext) => Promise<[ AnyReasonable[], string[], ]>,
 		metadata: Metadata,
 		kind: ArgKind,
 		type: ArgType,
@@ -61,40 +63,51 @@ export class ArgumentHandler {
 
 export class StaticArgumentHandler extends ArgumentHandler {
 	public constructor(argHandler: ArgType, metadata: Metadata) {
-		super((args, context) => {
-			if (args.length < 1) return [ Parsers.fail(Parsers.ParseFailureReason.VALUE_REQUIRED), args.slice(1), ];
-			const parseResult = argHandler(args[0], context.message, context.client);
-			if (!Parsers.didSucceed(parseResult)) {
-				return [ parseResult, args.slice(1), ];
+		super(async (args, context) => {
+			if (args.length < 1) throw [ Parsers.ParseFailureReason.VALUE_REQUIRED, ];
+			try {
+				const parseResult = await argHandler(args[0], context.message, context.client);
+				return [ [ parseResult[1], ], args.slice(1), ];
+			} catch (e) {
+				if (Number.isInteger(e)) {
+					throw [ e, ];
+				} else {
+					throw e;
+				}
 			}
-			return [ Parsers.succeed([ parseResult[1], ]), args.slice(1), ];
 		}, metadata, ArgKind.REQUIRED, argHandler, 1);
 	}
 }
 
 export class OptionalArgumentHandler extends ArgumentHandler {
 	public constructor(argHandler: ArgType, metadata: Metadata) {
-		super((args, context) => {
-			if (args.length < 1) return [ Parsers.succeed([ void 0, ]), args.slice(1), ];
-			const parseResult = argHandler(args[0], context.message, context.client);
-			if (!Parsers.didSucceed(parseResult)) {
-				return [ parseResult, args.slice(1), ];
+		super(async (args, context) => {
+			if (args.length < 1) return [ [ void 0, ], args.slice(1), ];
+			try {
+				const parseResult = await argHandler(args[0], context.message, context.client);
+				return [ [ parseResult[1], ], args.slice(1), ];
+			} catch (e) {
+				if (Number.isInteger(e)) {
+					throw [ e, ];
+				} else {
+					throw e;
+				}
 			}
-			return [ Parsers.succeed([ parseResult[1], ]), args.slice(1), ];
 		}, metadata, ArgKind.OPTIONAL, argHandler, 1);
 	}
 }
 
 export class RestArgumentHandler extends ArgumentHandler {
 	public constructor(argHandler: ArgType, metadata: Metadata) {
-		super((args, context) => {
-			const parsedArgs: AnyReasonable[] = [];
-			for (const [ i, arg, ] of args.entries()) {
-				const thisParsedArg = argHandler(arg, context.message, context.client);
-				if (!Parsers.didSucceed(thisParsedArg)) return [ Parsers.fail(thisParsedArg[1], i), args.slice(i + 1), ];
-				parsedArgs.push(thisParsedArg[1]);
-			}
-			return [ Parsers.succeed(parsedArgs), [], ];
+		super(async (args, context) => {
+			const parsedArgs: AnyReasonable[] = await Promise.all(args.map((arg, idx) => argHandler(arg, context.message, context.client).catch(e => {
+				if (Number.isInteger(e)) {
+					throw [ e, idx, ]; // include index of failed argument
+				} else {
+					throw e;
+				}
+			})));
+			return [ parsedArgs, [], ];
 		}, metadata, ArgKind.REST, argHandler, -1);
 	}
 }
@@ -113,6 +126,20 @@ const enum ArgumentFailureReason {
 type ArgumentFailure =
 	[ArgumentFailureReason.EXCESS, number, ] | // number of extra args left after parsing
 	[ArgumentFailureReason.PARSE_BAD, number, Metadata, Parsers.ParseFailureReason, ]; // index, arg metadata, reason
+
+function isArgumentFailure(x: unknown): x is ArgumentFailure {
+	return Array.isArray(x)
+		&& Number.isInteger(x[0])
+		&& Number.isInteger(x[1])
+		&& (
+			(
+				x.length === 2
+			) || (
+				x.length === 4 && x[2]
+				&& Number.isInteger(x[3])
+			)
+		);
+}
 
 export class CommandHandler {
 	public readonly args: ArgumentHandler[];
@@ -143,28 +170,31 @@ export class CommandHandler {
 		);
 	}
 
-	public run(context: CommandContext, rawArgs: string[]): void {
-		const [ didSucceed, argsOrFailure, ] = this.parseArgs(context, rawArgs);
-		if (didSucceed) {
-			this.utopicRun(context, ...(argsOrFailure as AnyReasonable[]));
-		} else {
-			this.sendFailure(context, argsOrFailure as ArgumentFailure);
+	public async run(context: CommandContext, rawArgs: string[]): Promise<void> {
+		try {
+			const parsedArgs = await this.parseArgs(context, rawArgs);
+			this.utopicRun(context, ...parsedArgs);
+		} catch (e) {
+			if (!isArgumentFailure(e)) { throw e; }
+			this.sendFailure(context, e);
 		}
 	}
 
-	protected parseArgs(context: CommandContext, rawArgs: string[]): [true, AnyReasonable[], ] | [false, ArgumentFailure, ] {
+	protected async parseArgs(context: CommandContext, rawArgs: string[]): Promise<AnyReasonable[]> {
 		const parsedArgs = [];
 		for (const [ i, handler, ] of this.args.entries()) {
-			// yes, all handlers will be called even if there are no args left
-			const [ theseParsedArgs, newRawArgs, ] = handler.getFrom(rawArgs, context);
-			rawArgs = newRawArgs;
-			if (!Parsers.didSucceed(theseParsedArgs)) {
-				return [ false, [ ArgumentFailureReason.PARSE_BAD, (theseParsedArgs[2] ?? 0) + i, handler.metadata, theseParsedArgs[1], ], ];
+			try {
+				const [ theseParsedArgs, newRawArgs, ] = await handler.getFrom(rawArgs, context);
+				rawArgs = newRawArgs;
+				parsedArgs.push(...theseParsedArgs);
+			} catch (e) {
+				if (Array.isArray(e) && e.length in [ 0, 1, ] && Number.isInteger(e[0]) && Number.isInteger(e[1] ?? 0)) {
+					throw [ ArgumentFailureReason.PARSE_BAD, (e[1] ?? 0) + i, handler.metadata, e[0], ];
+				}
 			}
-			parsedArgs.push(...theseParsedArgs[1]);
 		}
-		if (rawArgs.length > 0) { return [ false, [ ArgumentFailureReason.EXCESS, rawArgs.length, ], ]; } // this will not happen if there is a rest argument
-		return [ true, parsedArgs, ];
+		if (rawArgs.length > 0) { throw [ ArgumentFailureReason.EXCESS, rawArgs.length, ]; } // this will not happen if there is a rest argument
+		return parsedArgs;
 	}
 
 	protected sendFailure(context: CommandContext, reason: ArgumentFailure): void {

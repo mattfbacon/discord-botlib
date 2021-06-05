@@ -1,13 +1,12 @@
 import type { EmbedFieldData, } from 'discord.js';
 import { MessageEmbed, } from 'discord.js';
-import type { ArgumentHandler, CommandContext, } from '../Command';
+import type { ArgumentHandler, CommandContext, ArgType, } from '../Command';
 import { ArgKind, } from '../Command';
 import { CommandHandler, OptionalArgumentHandler, } from '../Command';
 import { getProperty, } from '../Util';
 import * as Strings from '../Strings';
 import config from '../Config';
 import * as Parsers from '../Parsers';
-import type { ArgType, } from '../Parsers';
 
 function commandShortDesc({ metadata: { name, shortDesc, }, args, }: CommandHandler): string {
 	return `${name} ${args.map(getProperty('repr')).join(' ')}: ${shortDesc}`;
