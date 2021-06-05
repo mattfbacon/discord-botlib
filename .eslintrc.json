@@ -140,7 +140,7 @@
 		"no-tabs": "off",
 		"no-template-curly-in-string": "error",
 		"no-this-before-super": "error",
-		"no-throw-literal": "error",
+		"no-throw-literal": "off",
 		"no-trailing-spaces": "error",
 		"no-undef": "error",
 		"no-undefined": "error",
