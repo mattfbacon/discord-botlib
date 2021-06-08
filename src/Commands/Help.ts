@@ -27,26 +27,22 @@ const argToEmbedField = ({ metadata: { name, shortDesc, longDesc, }, type, kind,
 
 const shortLongDesc = (shortDesc: string, longDesc?: string): string => `${shortDesc}${longDesc ? `\n${longDesc}` : ''}`;
 
-export function help({ message, commands, }: CommandContext, name_?: string): void {
+export async function help({ message, commands, client, }: CommandContext, name_?: string): Promise<void> {
 	if (name_) {
 		const commandData = commands.get(name_);
 		if (commandData) {
 			const { metadata: { name, shortDesc, longDesc, }, args, } = commandData;
-			message.channel.send(new MessageEmbed({
+			await message.channel.send(new MessageEmbed({
 				title: `Help for \`${name}\``,
 				description: shortLongDesc(shortDesc, longDesc),
 				fields: args.map(argToEmbedField),
 				color: config.themeColor,
 			}));
 		} else {
-			message.channel.send(Strings.invalidCommand(config.prefix), { allowedMentions: { parse: [], }, disableMentions: 'all', });
+			await message.channel.send(Strings.invalidCommand(name_), { allowedMentions: { parse: [], }, disableMentions: 'all', });
 		}
 	} else {
-		message.channel.send([
-			'```',
-			...Array.from(commands.values()).map(commandShortDesc),
-			'```',
-		].join('\n'));
+		await Promise.all(Array.from(commands.values()).map(commandShortDesc).map((x: string) => message.channel.send(`\`${x}\``)));
 	}
 }
 
