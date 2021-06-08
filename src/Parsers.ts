@@ -1,5 +1,6 @@
 import type { Channel, Client, GuildMember, Message, Role, Snowflake, User, } from 'discord.js';
 import { Util, DiscordAPIError, } from 'discord.js';
+import type { CommandContext, } from './Command';
 
 /* Lib */
 
@@ -29,9 +30,9 @@ type FailedParse<U extends Array<any>> = U;
 // can't type the rejection of a Promise so we'll do it the JS way...
 type ParseResult<T> = Promise<SuccessfulParse<T>>;
 
-type PossiblyPartial<T, IsPartial extends boolean> = IsPartial extends true ? T | undefined : T;
+type PossiblyPartial<T, IsPartial extends boolean> = IsPartial extends true ? Partial<T> : T;
 
-type _Parser<T, IsSimple extends boolean> = (raw: string, _message: PossiblyPartial<Message, IsSimple>, _client: PossiblyPartial<Client, IsSimple>) => ParseResult<T>;
+type _Parser<T, IsSimple extends boolean> = (raw: string, context: PossiblyPartial<CommandContext, IsSimple>) => ParseResult<T>;
 /**
  * if `type` is not defined, then use the `Function#name`.
  */
@@ -50,12 +51,12 @@ export type Parser<T, IsSimple extends boolean> = _Parser<T, IsSimple> & { type?
 // };
 
 const oneOf = <T, IsSimple extends boolean>(...parsers: Parser<T, IsSimple>[]): Parser<T, IsSimple> =>
-	(raw, _message, _client): ParseResult<T> =>
-		Promise.any(parsers.map(parser => parser(raw, _message, _client)));
+	(raw, context): ParseResult<T> =>
+		Promise.any(parsers.map(parser => parser(raw, context)));
 
 /* Implementations */
 
-export const string: Parser<string, false> = async (raw, _message) => { return Util.cleanContent(raw, _message); };
+export const string: Parser<string, false> = async (raw, { message, }) => { return Util.cleanContent(raw, message); };
 string.type = "text";
 export const number: Parser<number, true> = async raw => {
 	const parsed = parseInt(raw, 10);
@@ -64,8 +65,8 @@ export const number: Parser<number, true> = async raw => {
 };
 
 export const withCondition = <T, IsSimple extends boolean = false>(parser: Parser<T, IsSimple>, pred: (x: T) => boolean): Parser<T, IsSimple> =>
-	async (raw, _message, _client): ParseResult<T> => {
-		const x = await parser(raw, _message, _client);
+	async (raw, context): ParseResult<T> => {
+		const x = await parser(raw, context);
 		if (pred(x)) {
 			return x;
 		} else {
@@ -99,12 +100,12 @@ export const user = inlineIdMatcher(true, '@', '@!');
 export const channel = inlineIdMatcher(true, '#');
 export const role = inlineIdMatcher(true, '@&');
 
-export const realUser: Parser<User, false> = async (raw: string, message: Message, client: Client) => {
-	const userId = await user(raw, message, client);
+export const realUser: Parser<User, false> = async (raw: string, context) => {
+	const userId = await user(raw, context);
 	try {
 		// I am hoping that defining it as a variable allows the catch clause to
 		// trigger if the user isn't real...
-		const user = await client.users.fetch(userId[1]);
+		const user = await context.client.users.fetch(userId[1]);
 		return user;
 	} catch (e) {
 		if (e instanceof DiscordAPIError) {
@@ -114,13 +115,13 @@ export const realUser: Parser<User, false> = async (raw: string, message: Messag
 		}
 	}
 };
-export const realGuildUser: Parser<GuildMember, false> = async (raw: string, message: Message) => {
-	const userId = await user(raw, message, void 0);
+export const realGuildUser: Parser<GuildMember, false> = async (raw: string, context) => {
+	const userId = await user(raw, context);
 	try {
-		if (message.guild === null) { throw ParseFailureReason.NOT_APPLICABLE; }
+		if (context.message.guild === null) { throw ParseFailureReason.NOT_APPLICABLE; }
 		// I am hoping that defining it as a variable allows the catch clause to
 		// trigger if the user isn't real...
-		const user = await message.guild.members.fetch(userId[1]);
+		const user = await context.message.guild.members.fetch(userId[1]);
 		return user;
 	} catch (e) {
 		if (e instanceof DiscordAPIError) {
@@ -130,12 +131,12 @@ export const realGuildUser: Parser<GuildMember, false> = async (raw: string, mes
 		}
 	}
 };
-export const realChannel: Parser<Channel, false> = async (raw: string, message: Message, client: Client) => {
-	const channelId = await channel(raw, message, client);
+export const realChannel: Parser<Channel, false> = async (raw: string, context) => {
+	const channelId = await channel(raw, context);
 	try {
 		// I am hoping that defining it as a variable allows the catch clause to
 		// trigger if the channel isn't real...
-		const channel = await client.channels.fetch(channelId[1]);
+		const channel = await context.client.channels.fetch(channelId[1]);
 		return channel;
 	} catch (e) {
 		if (e instanceof DiscordAPIError) {
@@ -145,13 +146,13 @@ export const realChannel: Parser<Channel, false> = async (raw: string, message: 
 		}
 	}
 };
-export const realRole: Parser<Role, false> = async (raw: string, message: Message) => {
-	const roleId = await role(raw, message, void 0);
+export const realRole: Parser<Role, false> = async (raw: string, context) => {
+	const roleId = await role(raw, context);
 	try {
-		if (message.guild === null) { throw ParseFailureReason.NOT_APPLICABLE; }
+		if (context.message.guild === null) { throw ParseFailureReason.NOT_APPLICABLE; }
 		// I am hoping that defining it as a variable allows the catch clause to
 		// trigger if the role isn't real...
-		const role = await message.guild.roles.fetch(roleId[1]);
+		const role = await context.message.guild.roles.fetch(roleId[1]);
 		if (role === null) { throw ParseFailureReason.BAD_VALUE; }
 		return role;
 	} catch (e) {

@@ -66,7 +66,7 @@ export class StaticArgumentHandler extends ArgumentHandler {
 		super(async (args, context) => {
 			if (args.length < 1) throw [ Parsers.ParseFailureReason.VALUE_REQUIRED, ];
 			try {
-				const parseResult = await argHandler(args[0], context.message, context.client);
+				const parseResult = await argHandler(args[0], context);
 				return [ [ parseResult[1], ], args.slice(1), ];
 			} catch (e) {
 				if (Number.isInteger(e)) {
@@ -84,7 +84,7 @@ export class OptionalArgumentHandler extends ArgumentHandler {
 		super(async (args, context) => {
 			if (args.length < 1) return [ [ void 0, ], args.slice(1), ];
 			try {
-				const parseResult = await argHandler(args[0], context.message, context.client);
+				const parseResult = await argHandler(args[0], context);
 				return [ [ parseResult[1], ], args.slice(1), ];
 			} catch (e) {
 				if (Number.isInteger(e)) {
@@ -100,7 +100,7 @@ export class OptionalArgumentHandler extends ArgumentHandler {
 export class RestArgumentHandler extends ArgumentHandler {
 	public constructor(argHandler: ArgType, metadata: Metadata) {
 		super(async (args, context) => {
-			const parsedArgs: AnyReasonable[] = await Promise.all(args.map((arg, idx) => argHandler(arg, context.message, context.client).catch(e => {
+			const parsedArgs: AnyReasonable[] = await Promise.all(args.map((arg, idx) => argHandler(arg, context).catch(e => {
 				if (Number.isInteger(e)) {
 					throw [ e, idx, ]; // include index of failed argument
 				} else {
