@@ -57,7 +57,7 @@ export class ArgumentHandler {
 		this.type = type;
 		this.argsTaken = argsTaken;
 
-		this.repr = kindWrapper[this.kind](`${this.metadata.name}: ${this.type}`);
+		this.repr = kindWrapper[this.kind](`${this.metadata.name}: ${this.type.type ?? this.type.name}`);
 	}
 }
 
