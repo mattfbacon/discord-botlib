@@ -67,7 +67,7 @@ export class StaticArgumentHandler extends ArgumentHandler {
 			if (args.length < 1) throw [ Parsers.ParseFailureReason.VALUE_REQUIRED, ];
 			try {
 				const parseResult = await argHandler(args[0], context);
-				return [ [ parseResult[1], ], args.slice(1), ];
+				return [ [ parseResult, ], args.slice(1), ];
 			} catch (e) {
 				if (Number.isInteger(e)) {
 					throw [ e, ];
@@ -85,7 +85,7 @@ export class OptionalArgumentHandler extends ArgumentHandler {
 			if (args.length < 1) return [ [ void 0, ], args.slice(1), ];
 			try {
 				const parseResult = await argHandler(args[0], context);
-				return [ [ parseResult[1], ], args.slice(1), ];
+				return [ [ parseResult, ], args.slice(1), ];
 			} catch (e) {
 				if (Number.isInteger(e)) {
 					throw [ e, ];
