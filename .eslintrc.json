@@ -240,7 +240,7 @@
 		"@typescript-eslint/explicit-function-return-type": "error",
 		"@typescript-eslint/explicit-member-accessibility": "error",
 		"@typescript-eslint/init-declarations": ["error", "always"],
-		"@typescript-eslint/member-delimiter-style": "error",
+		"@typescript-eslint/member-delimiter-style": ["error", { "multiline": { "delimiter": "semi", "requireLast": true }, "singleline": { "delimiter": "comma", "requireLast": true } }],
 		"@typescript-eslint/member-ordering": "error",
 		"@typescript-eslint/method-signature-style": ["error", "property"],
 		"@typescript-eslint/naming-convention": "off",
@@ -248,5 +248,6 @@
 		"@typescript-eslint/no-confusing-non-null-assertion": "error",
 		"@typescript-eslint/no-confusing-void-expression": "error"
 	},
-	"ignorePatterns": ["node_modules/**"]
+	"ignorePatterns": ["node_modules/**"],
+	"root": true
 }
