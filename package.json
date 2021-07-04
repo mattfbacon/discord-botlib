@@ -9,7 +9,6 @@
 		"start": "tsc && node dist/Index.js"
 	},
 	"dependencies": {
-		"colors": "^1.4.0",
 		"dayjs": "^1.10.5",
 		"discord.js": "^12.5.3",
 		"dotenv": "^9.0.2",
@@ -27,5 +26,8 @@
 		"eslint": "^7.26.0",
 		"eslint-plugin-node": "^11.1.0",
 		"eslint-plugin-promise": "^5.1.0"
+	},
+	"optionalDependencies": {
+		"colors": "^1.4.0"
 	}
 }

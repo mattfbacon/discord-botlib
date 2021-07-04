@@ -1,4 +1,10 @@
-import * as Colors from 'colors/safe';
+let Colors_; // eslint-disable-line @typescript-eslint/init-declarations
+try {
+	Colors_ = require('colors/safe');
+} catch (e) {
+	Colors_ = new Proxy({}, { get: () => (str: string): string => str, });
+}
+const Colors = Colors_;
 
 const timestamp = (): string => new Date().toLocaleString(
 	'en-GB', // for dmy
