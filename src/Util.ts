@@ -9,7 +9,7 @@ export function* iteratorMap<T, U>(fn: (arg0: T) => U, iter: IterableIterator<T>
 	}
 }
 
-export const getProperty =
-	<K extends string | number | symbol, V>(prop: K) =>
+export const getProperty
+	= <K extends string | number | symbol, V>(prop: K) =>
 		(x: Record<K, V>): V =>
 			x[prop];

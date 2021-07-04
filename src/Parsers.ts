@@ -36,7 +36,7 @@ type _Parser<T, IsSimple extends boolean> = (raw: string, context: PossiblyParti
 /**
  * if `type` is not defined, then use the `Function#name`.
  */
-export type Parser<T, IsSimple extends boolean> = _Parser<T, IsSimple> & { type?: string };
+export type Parser<T, IsSimple extends boolean> = _Parser<T, IsSimple> & { type?: string, };
 
 // const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
 // 	return function (x, _message, _client): ParseResult<T> {
