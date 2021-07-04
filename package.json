@@ -3,7 +3,7 @@
 	"version": "0.0.1-beta",
 	"description": "Discord Authorization Bot",
 	"author": "Matt Fellenz",
-	"license": "AGPL-3.0-only",
+	"license": "AGPL-3.0-or-later",
 	"private": false,
 	"scripts": {
 		"start": "tsc && node dist/Index.js"
