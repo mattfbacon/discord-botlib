@@ -1,6 +1,6 @@
 {
 	"name": "authy",
-	"version": "1.0.0",
+	"version": "0.0.1-beta",
 	"description": "Discord Authorization Bot",
 	"author": "Matt Fellenz",
 	"license": "AGPL-3.0-only",
