@@ -32,14 +32,14 @@ export async function help({ message, commands, client, }: CommandContext, name_
 		const commandData = commands.get(name_);
 		if (commandData) {
 			const { metadata: { name, shortDesc, longDesc, }, args, } = commandData;
-			await message.channel.send(new MessageEmbed({
+			await message.channel.send({ embeds: [ new MessageEmbed({
 				title: `Help for \`${name}\``,
 				description: shortLongDesc(shortDesc, longDesc),
 				fields: args.map(argToEmbedField),
 				color: config.themeColor,
-			}));
+			}) ]});
 		} else {
-			await message.channel.send(Strings.invalidCommand(name_), { allowedMentions: { parse: [], }, disableMentions: 'all', });
+			await message.channel.send({ content: Strings.invalidCommand(name_), allowedMentions: { parse: [], } });
 		}
 	} else {
 		await Promise.all(Array.from(commands.values()).map(commandShortDesc).map((x: string) => message.channel.send(`\`${x}\``)));

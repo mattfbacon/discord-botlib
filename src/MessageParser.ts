@@ -45,7 +45,7 @@ export class MessageParser {
 	protected invalidCommand(msg: Discord.Message, cmd: string, mentionAsPrefix: boolean): void {
 		if (runHooks(hooks.onInvalidCommand, msg, cmd, mentionAsPrefix)) return;
 		if (config.invalidCommandNotice[mentionAsPrefix ? 'mention' : 'prefix']) {
-			msg.channel.send(Strings.invalidCommand(cmd), { allowedMentions: { parse: [], }, disableMentions: 'all', });
+			msg.channel.send({ content: Strings.invalidCommand(cmd), allowedMentions: { parse: [], }, });
 		}
 	}
 }

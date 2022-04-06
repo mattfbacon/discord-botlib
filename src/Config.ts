@@ -18,9 +18,9 @@ export interface Schema {
 	dbName: string;
 	/**
 	 * Hex color used wherever it can be
-	 * @default '#574b90'
+	 * @default '[87, 75, 144]'
 	 */
-	themeColor: string;
+	themeColor: [number, number, number];
 	/**
 	 * Whether to send the help page for the command when it's misused
 	 * @default true
@@ -52,7 +52,7 @@ const config: Schema = {
 	prefix: ";;",
 	mentionAsPrefix: true,
 	dbName: "authy",
-	themeColor: "#574b90",
+	themeColor: [87, 75, 144],
 	giveContextOnError: true,
 	zeroIndexed: false,
 	invalidCommandNotice: {

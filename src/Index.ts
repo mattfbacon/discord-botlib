@@ -11,7 +11,9 @@ import { runHooks, } from './Hook';
 
 loadEnv();
 
-const discord = new Discord.Client();
+const discord = new Discord.Client({
+	intents: [Discord.Intents.FLAGS.GUILD_MESSAGES],
+});
 
 if (!process.env.DISCORD_TOKEN) {
 	logging.error('Missing required environment variable: DISCORD_TOKEN');
